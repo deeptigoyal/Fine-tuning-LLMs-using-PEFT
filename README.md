@@ -16,43 +16,28 @@ SFTTrainer performs Supervised Fine-Tuning: the model learns to predict the next
 - Saving & inference:
 The fine-tuned LoRA model is saved and used in a text-generation pipeline with LLaMA-2’s chat prompt template.
 
-- SFT vs RLHF (in this code):
+- SFT vs RLHF (in the code):
 
 SFT (used here):
 Trains on labeled instruction–response data. Simple, stable, and cheap.
 
+RLHF (not used):
+Requires a reward model and preference data; optimizes behavior via reinforcement learning (e.g., PPO). More complex and costly.
 
-Note: Faced Out of Memory (OOF) concerns after reducing batch size and clearing cache. 
+👉 This code only uses SFT + QLoRA, no reward model or human preference optimization.
+
+
+**Note:** Faced Out of Memory (OOF) concerns after reducing batch size and clearing cache. 
 
 The OOM issue persists because even with all your current reductions, 7B parameters + 4-bit QLoRA + sequence length 512 + batch size 1 is still too large for a 14–16GB GPU, especially since oading the full model onto GPU (device_map={"":0}).
 
-_device_map = {"": "cpu"}  # Base model stays in CPU
-model = AutoModelForCausalLM.from_pretrained(
-    model_name,
-    quantization_config=bnb_config,
-    device_map=device_map
-)
+<img width="1084" height="646" alt="image" src="https://github.com/user-attachments/assets/960c19f8-2df4-4d95-8c6b-02abeb3435b5" />
 
-# Load LoRA adapters to GPU when training
-trainer = SFTTrainer(
-    model=model,
-    train_dataset=dataset,
-    peft_config=peft_config,
-    formatting_func=formatting_func,
-    args=training_arguments,
-    device_map={"": 0},  # Only adapters on GPU
-)_
+
+
 
 This is how QLoRA is supposed to work: the base weights are frozen and mostly in CPU, only LoRA adapters are on GPU.
 
 
 
 
-
-
-
-
-RLHF (not used):
-Requires a reward model and preference data; optimizes behavior via reinforcement learning (e.g., PPO). More complex and costly.
-
-👉 This code only uses SFT + QLoRA, no reward model or human preference optimization.
