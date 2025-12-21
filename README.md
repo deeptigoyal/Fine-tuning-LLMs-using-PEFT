@@ -21,6 +21,37 @@ The fine-tuned LoRA model is saved and used in a text-generation pipeline with L
 SFT (used here):
 Trains on labeled instruction–response data. Simple, stable, and cheap.
 
+
+Note: Faced Out of Memory (OOF) concerns after reducing batch size and clearing cache. 
+
+The OOM issue persists because even with all your current reductions, 7B parameters + 4-bit QLoRA + sequence length 512 + batch size 1 is still too large for a 14–16GB GPU, especially since oading the full model onto GPU (device_map={"":0}).
+
+_device_map = {"": "cpu"}  # Base model stays in CPU
+model = AutoModelForCausalLM.from_pretrained(
+    model_name,
+    quantization_config=bnb_config,
+    device_map=device_map
+)
+
+# Load LoRA adapters to GPU when training
+trainer = SFTTrainer(
+    model=model,
+    train_dataset=dataset,
+    peft_config=peft_config,
+    formatting_func=formatting_func,
+    args=training_arguments,
+    device_map={"": 0},  # Only adapters on GPU
+)_
+
+This is how QLoRA is supposed to work: the base weights are frozen and mostly in CPU, only LoRA adapters are on GPU.
+
+
+
+
+
+
+
+
 RLHF (not used):
 Requires a reward model and preference data; optimizes behavior via reinforcement learning (e.g., PPO). More complex and costly.
 
