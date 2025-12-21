@@ -29,12 +29,7 @@ Requires a reward model and preference data; optimizes behavior via reinforcemen
 
 **Note:** Faced Out of Memory (OOF) concerns after reducing batch size and clearing cache. 
 
-The OOM issue persists because even with all your current reductions, 7B parameters + 4-bit QLoRA + sequence length 512 + batch size 1 is still too large for a 14–16GB GPU, especially since oading the full model onto GPU (device_map={"":0}).
-
-<img width="1084" height="646" alt="image" src="https://github.com/user-attachments/assets/960c19f8-2df4-4d95-8c6b-02abeb3435b5" />
-
-
-
+- reduced tokenizer.model_max_length = 256 #to avoid oom
 
 This is how QLoRA is supposed to work: the base weights are frozen and mostly in CPU, only LoRA adapters are on GPU.
 
