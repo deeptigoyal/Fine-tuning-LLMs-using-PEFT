@@ -1,0 +1,70 @@
+Current situation:
+
+Endpoints:
+
+analyze → originally for single text.
+
+batch → originally for multiple texts (dataframes).
+
+health → separate, for service checks.
+
+Tokenization concern:
+
+Every request involves token counting.
+
+Computing tokens can be costly, especially for large batches.
+
+******************
+
+analyze could take multiple texts, and internally decide:
+
+If text is short (tokens < N) → process directly.
+
+If long (tokens > N) → route to batch processing.
+
+Points to consider
+1. Separation of concerns
+
+Single text vs batch should ideally remain separate:
+
+Single text: lightweight, low-latency processing. Users expect near-instant results.
+
+Batch processing: optimized for multiple records, maybe asynchronous or chunked for memory efficiency.
+
+Mixing both in one endpoint could:
+
+Increase complexity of analyze.
+
+Make performance unpredictable, especially if token counting is done for every text.
+
+2. Token length logic
+
+Checking token length is important only if your model or pipeline has max token limits.
+
+Doing it for every request in analyze might be unnecessary overhead if most requests are small.
+
+A better way:
+
+Keep analyze for single text.
+
+/analyze  → for single text, direct processing
+/batch    → for multiple texts, handles chunking if token length > limit
+/health   → service status
+
+Keep batch for multiple texts.
+
+Within batch, handle token-based chunking efficiently.
+
+3. User expectations
+
+If a user calls analyze, they expect instant response. If analyze internally decides to do batching for long text, it might:
+
+Increase response time.
+
+Cause unexpected behavior for the user.
+
+4. Performance
+
+Tokenizing every text in analyze for routing adds extra compute.
+
+Instead, token-based splitting should happen only in batch endpoint.
